@@ -1,0 +1,24 @@
+# ========================================
+# 钢珠检测训练配置文件
+# 改完参数后运行: python start_train.py
+# ========================================
+
+# --- 数据集 ---
+data: steel_ball.yaml           # 数据集yaml（路径/类别）
+
+# --- 模型 ---
+weights: yolov5n.pt             # 预训练权重（自动下载）
+# 模型大小: yolov5n(最小) > s > m > l > x(最大)
+
+# --- 训练参数 ---
+img: 960                        # 输入图片尺寸
+batch: 8                        # 批次大小（显存不够→4）
+epochs: 300                     # 训练轮数
+
+# --- 硬件 ---
+device: 0                       # GPU编号（0=第一块, cpu=CPU）
+workers: 0                      # Windows 必须用 0，多进程会崩
+
+# --- 输出 ---
+name: steel_ball_v2             # 实验名→结果在 runs/train/steel_ball_v2/
+project: runs/train             # 保存根目录

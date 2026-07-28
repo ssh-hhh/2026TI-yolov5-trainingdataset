@@ -1,0 +1,30 @@
+# Build
+build/
+**/build/
+*.exe
+*.dll
+*.obj
+*.pdb
+*.ilk
+*.exp
+*.lib
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+
+# IDE
+.idea/
+*.swp
+*.swo
+
+# Training logs
+**/runs/**/events.out.*
+**/runs/**/*.jpg
+
+# Misc
+.codegraph/
+.omo/
+.vscode/ipch/
