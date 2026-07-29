@@ -1,0 +1,5 @@
+path: D:\Edge\Elcetronics competition\iron_steel_dataset_v2
+train: images/train
+val: images/val
+nc: 3
+names: ['ir_sheet', 'ir_disc', 'st_ball']

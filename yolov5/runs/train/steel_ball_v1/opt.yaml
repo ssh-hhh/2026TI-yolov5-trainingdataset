@@ -1,6 +1,6 @@
-weights: yolov5n.pt
+weights: yolov5s.pt
 cfg: ''
-data: steel_ball.yaml
+data: D:\Edge\Elcetronics competition\iron_steel_dataset_v2\dataset.yaml
 hyp:
   lr0: 0.01
   lrf: 0.01
@@ -31,8 +31,8 @@ hyp:
   mixup: 0.0
   copy_paste: 0.0
 epochs: 300
-batch_size: 8
-imgsz: 960
+batch_size: 16
+imgsz: 320
 rect: false
 resume: false
 nosave: false
@@ -41,7 +41,7 @@ noautoanchor: false
 noplots: false
 evolve: null
 bucket: ''
-cache: null
+cache: ram
 image_weights: false
 device: '0'
 multi_scale: false
@@ -55,7 +55,7 @@ exist_ok: false
 quad: false
 cos_lr: false
 label_smoothing: 0.0
-patience: 100
+patience: 0
 freeze:
 - 0
 save_period: -1
