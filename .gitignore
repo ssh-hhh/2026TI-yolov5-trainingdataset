@@ -24,6 +24,12 @@ __pycache__/
 **/runs/**/events.out.*
 **/runs/**/*.jpg
 
+# Legacy calibration images (regenerable via select_calib.py)
+picture/
+
+# Dataset label caches (regenerable)
+*.cache
+
 # Misc
 .codegraph/
 .omo/
