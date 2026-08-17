@@ -1,7 +1,7 @@
 # Ubuntu 环境部署教程：ONNX → RDK X5 (.bin)
 
 > 适用场景：Windows 上用 conda 完成 **训练 / 导出 ONNX / 生成校准数据**（保持原样），
-> 将产物拷到 **Ubuntu** 上运行 `hb_mapper` 工具链，把 ONNX 转成 RDK X5 可加载的 `.bin`。
+> 将产物拷到 **Ubuntu：RDK X5板载** 上运行 `hb_mapper` 工具链，把 ONNX 转成 RDK X5 可加载的 `.bin`。
 
 ---
 
