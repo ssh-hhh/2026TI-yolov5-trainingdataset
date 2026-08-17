@@ -10,8 +10,8 @@
 ```
 ┌──────────────────────── Windows ────────────────────────┐
 │ conda yolov5 环境（Python 3.11.5）                      │
-│ ① python rdk_x5/export_rdk_onnx.py     → rdk_yolov5s_320.onnx │
-│ ② python rdk_x5/prepare_calib_data.py  → calibration_data_rgb_f32_320/ │
+│ ① python rdk_x5/export_rdk_onnx.py     → rdk_x5/rdk_yolov5s_320.onnx │
+│ ② python rdk_x5/prepare_calib_data.py  → rdk_x5/calibration_data_rgb_f32_320/ │
 └──────────────────────────┬──────────────────────────────┘
                            │ 拷贝（U盘 / scp）
                            ▼
@@ -69,7 +69,7 @@ docker run hello-world   # 能打印 Hello from Docker! 即成功
 
 ## 4. 从 Windows 拷贝所需文件
 
-在 Windows 上先确保①②已执行（在 `D:\Edge\Elcetronics competition` 下）：
+在 Windows 上先确保①②已执行：
 
 ```bash
 conda activate yolov5
@@ -80,22 +80,24 @@ python rdk_x5/prepare_calib_data.py
 然后拷到 Ubuntu（示例目标目录 `~/steel_yolov5`）：
 
 ```bash
-# 方式一：scp（Windows PowerShell）
-scp -r "D:\Edge\Elcetronics competition" user@ubuntu_ip:~/steel_yolov5
+# 方式一：scp 整个 rdk_x5/ 目录即可（在仓库根目录执行）
+scp -r rdk_x5 user@ubuntu_ip:~/steel_yolov5/
 
-# 方式二：U 盘手动拷贝
+# 方式二：U 盘手动拷贝 rdk_x5/ 目录
 ```
+
+> ✅ 由于 ONNX 产物已改到 `rdk_x5/` 内，转换所需的全部文件都在 `rdk_x5/` 一个目录中，
+> **只需拷贝这一个文件夹**，无需拷整个仓库。
 
 **转换必需的最小文件集**（其余可省略）：
 
 ```
 steel_yolov5/
-├── rdk_x5/
-│   ├── convert_to_bin.sh                    # 转换脚本
-│   ├── yolov5s_320_bayese_nv12.yaml         # hb_mapper 配置
-│   └── calibration_data_rgb_f32_320/        # 校准数据（50 个 .bin）
-└── yolov5/runs/train/steel_ball_v1/weights/
-    └── rdk_yolov5s_320.onnx                 # 按 RDK 规范导出的 ONNX
+└── rdk_x5/
+    ├── convert_to_bin.sh                    # 转换脚本
+    ├── yolov5s_320_bayese_nv12.yaml         # hb_mapper 配置
+    ├── rdk_yolov5s_320.onnx                 # 按 RDK 规范导出的 ONNX（与 yaml 同目录）
+    └── calibration_data_rgb_f32_320/        # 校准数据（50 个 .bin）
 ```
 
 ---

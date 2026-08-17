@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 # ============================================================
 # RDK X5 YOLOv5s@320 ONNX -> .bin 一键转换
-# 前置条件: WSL2/Linux + Docker (镜像 openexplorer/ai_toolchain_ubuntu_20_x5_cpu:v1.2.8)
+# 前置条件: Ubuntu + Docker (镜像 openexplorer/ai_toolchain_ubuntu_20_x5_cpu:v1.2.8)
 #
 # 用法:
 #   1) 在 Windows 上先导出 ONNX 并生成校准数据:
 #        conda activate yolov5
 #        python rdk_x5/export_rdk_onnx.py
 #        python rdk_x5/prepare_calib_data.py
-#   2) 在 WSL2 中运行本脚本 (仓库挂载到 /mnt/d/Edge/...):
+#   2) 将 rdk_x5/ 目录拷到 Ubuntu 后运行本脚本:
 #        bash rdk_x5/convert_to_bin.sh
 # ============================================================
 set -e
@@ -18,7 +18,7 @@ ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 RDK_DIR="$ROOT_DIR/rdk_x5"
 VERSION="v1.2.8"
 IMAGE="openexplorer/ai_toolchain_ubuntu_20_x5_cpu:${VERSION}"
-ONNX="$ROOT_DIR/yolov5/runs/train/steel_ball_v1/weights/rdk_yolov5s_320.onnx"
+ONNX="$RDK_DIR/rdk_yolov5s_320.onnx"
 
 echo "=============================================="
 echo " RDK X5 模型转换 (${VERSION})"
@@ -43,7 +43,7 @@ docker image inspect "$IMAGE" >/dev/null 2>&1 || docker pull "$IMAGE"
 echo "[2/4] hb_mapper checker 模型检查..."
 docker run --rm -v "$ROOT_DIR":/data -w /data/rdk_x5 "$IMAGE" \
     hb_mapper checker --model-type onnx --march bayes-e \
-    --model "/data/yolov5/runs/train/steel_ball_v1/weights/rdk_yolov5s_320.onnx"
+    --model "/data/rdk_x5/rdk_yolov5s_320.onnx"
 
 # 3. 量化 + 编译 -> .bin
 echo "[3/4] hb_mapper makertbin 量化编译..."

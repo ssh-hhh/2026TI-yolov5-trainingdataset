@@ -24,7 +24,8 @@ __pycache__/
 **/runs/**/events.out.*
 **/runs/**/*.jpg
 
-# RDK X5 generated artifacts (regenerable via prepare_calib_data.py / convert_to_bin.sh)
+# RDK X5 generated artifacts (regenerable via export_rdk_onnx.py / prepare_calib_data.py / convert_to_bin.sh)
+rdk_x5/rdk_yolov5s_320.onnx
 rdk_x5/calibration_data_rgb_f32_320/
 rdk_x5/output/
 

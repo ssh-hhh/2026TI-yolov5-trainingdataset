@@ -1,0 +1,5 @@
+path: ../iron_steel_dataset_v2   # 相对 yolov5 目录（check_dataset 会解析为仓库根下的数据集目录）
+train: images/train
+val: images/val
+nc: 3
+names: ['ir_sheet', 'ir_disc', 'st_ball']

@@ -6,7 +6,7 @@
 # ============================================================
 
 model_parameters:
-  onnx_model: '../yolov5/runs/train/steel_ball_v1/weights/rdk_yolov5s_320.onnx'
+  onnx_model: './rdk_yolov5s_320.onnx'   # export_rdk_onnx.py 产物（与 yaml 同目录）
   march: "bayes-e"                 # ★ X5 专属; X3=bernoulli2, Ultra/J5=bayes
   layer_out_dump: False
   working_dir: 'output/yolov5s_320_bayese_nv12'
