@@ -27,6 +27,10 @@ __pycache__/
 # Legacy calibration images (regenerable via select_calib.py)
 picture/
 
+# RDK X5 generated artifacts (regenerable via prepare_calib_data.py / convert_to_bin.sh)
+rdk_x5/calibration_data_rgb_f32_320/
+rdk_x5/output/
+
 # Dataset label caches (regenerable)
 *.cache
 

@@ -77,6 +77,12 @@ Elcetronics competition/
 ├── quantize_int8.py                # ONNX Runtime 静态 INT8 量化脚本
 ├── select_calib.py                 # ⚠️ 遗留：校准图选取脚本（已被量化脚本内置逻辑取代）
 ├── picture/                        # ⚠️ 遗留：旧校准图副本（200 张，不入库）
+├── rdk_x5/                         # RDK X5 部署转换工具链 (.onnx → .bin)
+│   ├── export_rdk_onnx.py          # 按地平线规范导出 ONNX（NHWC 3 特征头）
+│   ├── prepare_calib_data.py       # 生成 hb_mapper 校准数据（50 张 f32 RGB）
+│   ├── calibration_data_rgb_f32_320/  # ⚠️ 生成的校准数据（不入库）
+│   ├── yolov5s_320_bayese_nv12.yaml   # hb_mapper 量化编译配置
+│   └── convert_to_bin.sh           # Docker 一键转换脚本（checker + makertbin）
 ├── .gitignore
 └── README.md
 ```
@@ -94,6 +100,12 @@ Elcetronics competition/
   678张图+标注         yolov5s@320px       best.pt            best.onnx
   80/20 划分          300 epochs          → best.onnx        → best_int8.onnx
   → train/val         → best.pt          (26.9MB)            (7.1MB)
+                                                    │
+                                                    ▼
+                                     ┌──────────────────────────┐
+                                     │ RDK X5 部署转换           │
+                                     │ rdk_x5/ (onnx → .bin)    │
+                                     └──────────────────────────┘
 ```
 
 **详细步骤：**
@@ -121,6 +133,10 @@ Elcetronics competition/
 | `yolov5/val.py` | 验证集评估（mAP/PR） | ✅ 必需 |
 | `yolov5/detect.py` | 图片/视频/摄像头推理 | ✅ 必需 |
 | `quantize_int8.py` | ONNX INT8 静态量化 + 性能对比 | ✅ 必需（部署） |
+| `rdk_x5/export_rdk_onnx.py` | 按地平线规范导出 ONNX（剥离 NMS、NHWC 3 头、batch=1、opset=11） | ✅ 必需（RDK 部署） |
+| `rdk_x5/prepare_calib_data.py` | 从训练集生成 hb_mapper 校准数据（50 张 float32 RGB NCHW 0~255） | ✅ 必需（RDK 部署） |
+| `rdk_x5/yolov5s_320_bayese_nv12.yaml` | hb_mapper 量化编译配置（march= bayes-e、nv12 输入、data_scale 1/255） | ✅ 必需（RDK 部署） |
+| `rdk_x5/convert_to_bin.sh` | Docker 容器内执行 checker + makertbin，产出 .bin | ✅ 必需（RDK 部署） |
 | `yolov5/yolov5s.pt` | COCO 预训练权重 | ✅ 必需（训练起点） |
 | `iron_steel_dataset_v2/labels/split.py` | 旧划分脚本（路径写死已失效） | ❌ 遗留，可删 |
 | `select_calib.py` | 旧校准图选取脚本 | ❌ 遗留，可删 |
@@ -243,15 +259,46 @@ python detect.py --weights runs/train/steel_ball_v1/weights/best.pt --source <�
 本项目最终目标是在 **地平线 RDK X5**（旭日 X5，BPU）上运行。部署链路：
 
 ```
-best_int8.onnx ──(hb_mapper / OpenExplorer 工具链)──> .bin ──> RDK X5 板端 (hobot-dnn)
+best.pt ──(export_rdk_onnx.py)──> rdk_yolov5s_320.onnx ──(hb_mapper / OpenExplorer 工具链)──> .bin ──> RDK X5 板端 (hobot-dnn)
 ```
 
-要点（详见地平线官方文档）：
+工具链：**OpenExplorer v1.2.8**（Docker 镜像 `openexplorer/ai_toolchain_ubuntu_20_x5_cpu:v1.2.8`），`march= bayes-e`。
 
-- 工具链：**OpenExplorer v1.2.8**（Docker 镜像 `openexplorer/ai_toolchain_ubuntu_20_x5_cpu:v1.2.8`），`march= bayes-e`
-- ONNX 导出需按地平线规范调整：固定 batch=1、opset=11、剥离 NMS 后处理、输出 3 个特征头（P3/P4/P5）
-- 校准数据：20~100 张 float32 RGB NCHW 图片（值域 0~255，不可预先归一化）
-- 板端要求：RDK OS ≥ 3.2.3
+### 转换步骤（`rdk_x5/` 一键工具链）
+
+```bash
+# ① 在 Windows（conda yolov5 环境）导出符合地平线规范的 ONNX
+#    - 剥离 NMS 后处理，Detect 头输出 3 个 NHWC 特征图（P3/P4/P5）
+#    - 固定 batch=1、opset=11
+#    - 输出节点命名 small / medium / big（1×40×40×24 / 1×20×20×24 / 1×10×10×24）
+conda activate yolov5
+python rdk_x5/export_rdk_onnx.py
+# 产物: yolov5/runs/train/steel_ball_v1/weights/rdk_yolov5s_320.onnx
+
+# ② 生成 hb_mapper 校准数据（50 张 float32 RGB NCHW 0~255，不可归一化）
+python rdk_x5/prepare_calib_data.py
+# 产物: rdk_x5/calibration_data_rgb_f32_320/*.bin
+
+# ③ 在 WSL2/Linux（需 Docker）转换 ONNX → .bin
+bash rdk_x5/convert_to_bin.sh
+# 产物: rdk_x5/output/yolov5s_320_bayese_nv12/*.bin
+```
+
+### 关键配置（`rdk_x5/yolov5s_320_bayese_nv12.yaml`）
+
+| 参数 | 值 | 说明 |
+|---|---|---|
+| `march` | `bayes-e` | RDK X5 专属架构（X3=bernoulli2，Ultra/J5=bayes） |
+| `input_type_rt` | `nv12` | 板端 BPU 最优输入格式 |
+| `input_type_train` | `rgb` + `NCHW` | 训练/校准数据格式 |
+| `norm_type` / `scale_value` | `data_scale` / `1/255` | YOLOv5 无均值减法，仅缩放 |
+| `cal_data_dir` | `calibration_data_rgb_f32_320` | 校准数据目录 |
+| `compile_mode` | `latency` | 延时优先编译 |
+
+### 板端要求
+
+- RDK OS ≥ 3.2.3
+- 将 `.bin` 拷贝至板端，使用 `hobot_dnn` 加载推理，输入需转为 NV12 格式（或改 yaml 为 `rgb` 直连）
 
 > 参考：[RDK Model Zoo — YOLOv5](https://github.com/D-Robotics/rdk_model_zoo/tree/rdk_x5/samples/vision/yolov5)
 
