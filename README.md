@@ -14,6 +14,7 @@
 - [运行环境配置](#运行环境配置)
 - [快速开始](#快速开始)
 - [训练结果](#训练结果)
+- [模型产物与流转](#模型产物与流转)
 - [部署到 RDK X5](#部署到-rdk-x5)
 - [常见问题](#常见问题)
 - [许可证](#许可证)
@@ -247,6 +248,65 @@ python detect.py --weights runs/train/steel_ball_v1/weights/best.pt --source <�
 
 > 详细逐 epoch 指标见 `yolov5/runs/train/steel_ball_v1/results.csv`，
 > 曲线图见同目录 `*.png`，FP32/INT8 验证集对比见 `runs/val/`。
+
+---
+
+## 模型产物与流转
+
+### 训练产出的模型文件及用途
+
+| 文件 | 来源 | 格式 | 用途 |
+|---|---|---|---|
+| `best.pt` | 训练（最优轮） | PyTorch | **源头权重**：继续训练/微调、所有 ONNX 导出的输入 |
+| `last.pt` | 训练（最后一轮） | PyTorch | 意外中断时恢复训练用，日常推理不用 |
+| `best.onnx` | `export.py` | ONNX FP32，**含 NMS 后处理** | 本地验证（`val.py`）、ONNX Runtime INT8 量化的输入 |
+| `best_int8.onnx` | `quantize_int8.py` | ONNX INT8 (QDQ) | 本地/边缘轻量推理，体积 ↓73% |
+| `rdk_yolov5s_320.onnx` | `export_rdk_onnx.py` | ONNX，**RDK 规范**（无 NMS/NHWC/batch=1/opset=11） | RDK X5 转 `.bin` 的唯一输入 |
+
+### 流转图：best.pt → ONNX → .bin
+
+```
+                         ┌─────────────┐
+                         │   best.pt   │  训练最优权重（源头）
+                         └──────┬──────┘
+                   ┌────────────┴────────────┐
+                   │                         │
+      export.py    │                         │   export_rdk_onnx.py
+   (yolov5 官方)   │                         │   (rdk_x5/)
+                   ▼                         ▼
+        ┌──────────────────┐      ┌──────────────────────┐
+        │   best.onnx      │      │ rdk_yolov5s_320.onnx │
+        │ FP32 26.9MB      │      │ RDK规范 26.8MB        │
+        │ 含NMS后处理       │      │ 无NMS/NHWC/batch1    │
+        └───────┬──────────┘      └─────────┬────────────┘
+                │                           │
+ quantize_int8.py│                prepare_calib_data.py
+   (rdk 无需)    │                (50张校准数据)
+                ▼                           │
+        ┌──────────────────┐                │
+        │ best_int8.onnx   │                │
+        │ INT8 7.1MB       │                │
+        └───────┬──────────┘                │
+                │                           ▼
+                │              ┌─────────────────────────┐
+                │              │  convert_to_bin.sh      │
+                │              │  (Ubuntu + Docker +     │
+                │              │   hb_mapper 工具链)     │
+                │              └───────────┬─────────────┘
+                │                          ▼
+                ▼                 ┌─────────────────────┐
+      ┌─────────────────┐         │ yolov5s_320_....bin │
+      │ 本地推理 / 验证  │         │ (RDK X5 板端加载)    │
+      └─────────────────┘         └─────────────────────┘
+         通用 PC / 边缘                  部署到板端
+```
+
+**两条路线：**
+
+- **路线 A（本地/通用推理）**：`best.pt` → `best.onnx`（含 NMS，可独立推理）→ `best_int8.onnx`（体积小，适合 PC/边缘）。全程 Windows + conda 即可。
+- **路线 B（RDK X5 板端部署）**：`best.pt` → `rdk_yolov5s_320.onnx`（RDK 规范，剥离 NMS）→ 配合 50 张校准数据 → `hb_mapper`（Ubuntu + Docker）→ `.bin` → 板端 `hobot_dnn` 加载。
+
+> ⚠️ **为什么不能用 `best.onnx` 直接转 .bin**：地平线工具链不支持 NMS 算子，且要求固定 batch=1、opset=11、NHWC 输出——只有 `rdk_yolov5s_320.onnx` 满足这些要求。
 
 ---
 
