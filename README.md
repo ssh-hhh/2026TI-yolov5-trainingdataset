@@ -322,7 +322,7 @@ A: 训练 `--imgsz`、导出 `--imgsz`、量化脚本 `INPUT_SIZE`、验证 `--i
 
 ## 许可证
 
-本仓库仅用于 2026 电子设计竞赛参赛用途，YOLOv5 框架遵循 [AGPL-3.0](https://github.com/ultralytics/yolov5/blob/master/LICENSE) 协议，请遵循其开源条款。
+本仓库仅用于 比赛用途，YOLOv5 框架遵循 [AGPL-3.0](https://github.com/ultralytics/yolov5/blob/master/LICENSE) 协议，请遵循其开源条款。
 
 ---
 
