@@ -7,15 +7,40 @@
 
 ## 目录
 
+- [目录结构](#目录结构)
 - [两条链路](#两条链路)
 - [快速开始](#快速开始)
 - [运行环境配置](#运行环境配置)
 - [训练结果](#训练结果)
 - [模型产物](#模型产物)
 - [部署到 RDK X5](#部署到-rdk-x5)
-- [目录结构](#目录结构)
 - [常见问题](#常见问题)
 - [许可证](#许可证)
+
+---
+
+## 目录结构
+
+```
+Elcetronics competition/
+├── iron_steel_dataset_v2/          # 数据集（images/labels 各含 train 542 + val 136）
+│   ├── dataset.yaml                # 数据集配置（3 类）
+│   └── train_yolov5s.py            # 一键：划分 80/20 + 训练
+├── yolov5/                         # YOLOv5 框架 + 训练产物
+│   ├── runs/train/steel_ball_v1/weights/   # best.pt / last.pt / best.onnx / best_int8.onnx / rdk_yolov5s_320.onnx
+│   ├── runs/val/                   # FP32/INT8 验证结果
+│   ├── train.py / val.py / detect.py / export.py
+│   └── yolov5s.pt                  # COCO 预训练权重
+├── quantize_int8.py                # 链路① ONNX Runtime 静态 INT8 量化
+├── rdk_x5/                         # 链路② 工具链
+│   ├── export_rdk_onnx.py          # RDK 规范 ONNX 导出
+│   ├── prepare_calib_data.py       # 校准数据生成（50 张）
+│   ├── yolov5s_320_bayese_nv12.yaml# hb_mapper 配置
+│   ├── convert_to_bin.sh           # Docker 转换脚本（checker + makertbin）
+│   └── ubuntu_deploy_tutorial.md   # Ubuntu 环境教程
+├── .gitignore
+└── README.md
+```
 
 ---
 
@@ -33,11 +58,11 @@
         export.py              export_rdk_onnx.py (rdk_x5/)
              │                         │
              ▼                         ▼
-         best.onnx             rdk_yolov5s_320.onnx
-         FP32 26.9MB           FP32 26.8MB（无NMS/NHWC/batch1/opset11）
-         (含NMS，可独立推理)         │ ← 位于 rdk_x5/
-              │                    ├─ prepare_calib_data.py → 50张校准数据
-              ▼                    │   (rdk_x5/calibration_data_rgb_f32_320/)
+        best.onnx             rdk_yolov5s_320.onnx
+        FP32 26.9MB           FP32 26.8MB（无NMS/NHWC/batch1/opset11）
+        (含NMS，可独立推理)         │
+             │                    ├─ prepare_calib_data.py → 50张校准数据
+             ▼                    │
    quantize_int8.py              ▼
    (ONNX Runtime QDQ)     hb_mapper makertbin (Ubuntu+Docker)
              │              ── 内部完成 INT8 量化 ──
@@ -88,9 +113,9 @@ python export.py --weights runs/train/steel_ball_v1/weights/best.pt --imgsz 320 
 # 回到根目录
 python quantize_int8.py
 # 验证（FP32 / INT8）
-python val.py --data "../train yolov5s/dataset.yaml" ^
+python val.py --data ../iron_steel_dataset_v2/dataset.yaml ^
     --weights runs/train/steel_ball_v1/weights/best.onnx --imgsz 320 --name fp32_onnx
-python val.py --data "../train yolov5s/dataset.yaml" ^
+python val.py --data ../iron_steel_dataset_v2/dataset.yaml ^
     --weights runs/train/steel_ball_v1/weights/best_int8.onnx --imgsz 320 --name int8_onnx
 # 推理
 python detect.py --weights runs/train/steel_ball_v1/weights/best.pt --source <图片/视频> --imgsz 320
@@ -110,7 +135,7 @@ bash rdk_x5/convert_to_bin.sh
 
 ## 运行环境配置
 
-### Windows + conda（训练/导出/量化，Python 3.11.5）
+### Windows + conda（训练/导出/量化，Python 3.10）
 
 ```bash
 conda create -n yolov5 python=3.10 -y
@@ -166,7 +191,7 @@ Docker + 工具链镜像 `openexplorer/ai_toolchain_ubuntu_20_x5_cpu:v1.2.8`，
 | `best.pt` / `last.pt` | 训练 | 源头权重；`best.pt` 为所有导出的输入，`last.pt` 仅用于断点恢复 |
 | `best.onnx` | `export.py` | 链路①输入：本地验证 + ONNX Runtime 量化（含 NMS） |
 | `best_int8.onnx` | `quantize_int8.py` | 链路①产物：本地 INT8 验证，**不参与** `.bin` 转换 |
-| `rdk_yolov5s_320.onnx` | `export_rdk_onnx.py` | 链路②输入（位于 `rdk_x5/`）：RDK 规范 FP32（无 NMS/NHWC/batch=1/opset=11，输出 small/medium/big 三头） |
+| `rdk_yolov5s_320.onnx` | `export_rdk_onnx.py` | 链路②输入：RDK 规范 FP32（无 NMS/NHWC/batch=1/opset=11，输出 small/medium/big 三头） |
 | `yolov5s_320_bayese_nv12.bin` | `convert_to_bin.sh` | 链路②产物：★ INT8 板端模型，`hobot_dnn` 加载 |
 
 ---
@@ -180,7 +205,7 @@ Docker + 工具链镜像 `openexplorer/ai_toolchain_ubuntu_20_x5_cpu:v1.2.8`，
 #    剥离 NMS、NHWC 3 头、固定 batch=1、opset=11
 #    输出: small [1,40,40,24] / medium [1,20,20,24] / big [1,10,10,24]
 python rdk_x5/export_rdk_onnx.py
-#    → rdk_x5/rdk_yolov5s_320.onnx
+#    → yolov5/runs/train/steel_ball_v1/weights/rdk_yolov5s_320.onnx
 
 # ② Windows：生成校准数据（50 张 float32 RGB NCHW 0~255，不可归一化）
 python rdk_x5/prepare_calib_data.py
@@ -208,32 +233,6 @@ bash rdk_x5/convert_to_bin.sh
 
 > 参考：[RDK Model Zoo — YOLOv5](https://github.com/D-Robotics/rdk_model_zoo/tree/rdk_x5/samples/vision/yolov5)
 
----
-
-## 目录结构
-
-```
-Elcetronics competition/
-├── iron_steel_dataset_v2/          # 数据集（images/labels 各含 train 542 + val 136）
-├── train yolov5s/                  # 训练配置与入口
-│   ├── dataset.yaml                # 数据集配置（3 类）
-│   └── train_yolov5s.py            # 一键：划分 80/20 + 训练
-├── yolov5/                         # YOLOv5 框架 + 训练产物
-│   ├── runs/train/steel_ball_v1/weights/   # best.pt / last.pt / best.onnx / best_int8.onnx
-│   ├── runs/val/                   # FP32/INT8 验证结果
-│   ├── train.py / val.py / detect.py / export.py
-│   └── yolov5s.pt                  # COCO 预训练权重
-├── quantize_int8.py                # 链路① ONNX Runtime 静态 INT8 量化
-├── rdk_x5/                         # 链路② 工具链
-│   ├── export_rdk_onnx.py          # RDK 规范 ONNX 导出（产物 rdk_yolov5s_320.onnx，可再生成）
-│   ├── prepare_calib_data.py       # 校准数据生成（50 张）
-│   ├── calibration_data_rgb_f32_320/  # ⚠️ 生成的校准数据（不入库）
-│   ├── yolov5s_320_bayese_nv12.yaml# hb_mapper 配置
-│   ├── convert_to_bin.sh           # Docker 转换脚本（checker + makertbin）
-│   └── ubuntu_deploy_tutorial.md   # Ubuntu 环境教程
-├── .gitignore
-└── README.md
-```
 
 ---
 
