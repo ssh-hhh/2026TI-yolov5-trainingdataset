@@ -240,7 +240,7 @@ bash rdk_x5/convert_to_bin.sh
 ---
 
 ## 常见问题
-**限于笔者水平，难免产生错误，请提交合并请求或参与讨论，多多包含。
+限于笔者水平，难免产生错误，请提交合并请求或参与讨论，多多包含。
 
 **Q: 转 .bin 报 Unsupported operator / opset 错误？**
 A: 必须用 `rdk_x5/export_rdk_onnx.py` 导出的 ONNX（opset=11、batch=1、无 NMS）；`best.onnx` 含 NMS 不支持。
