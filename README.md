@@ -3,6 +3,8 @@
 基于 **YOLOv5s** 的钢材目标检测，检测三类目标：**铁片 (`ir_sheet`)**、**铁盘 (`ir_disc`)**、**钢珠 (`st_ball`)**。
 训练 → 量化 → 转 `.bin` → 地平线 **RDK X5** 板端推理全流程闭环。
 
+**RDK X5 使用 `.bin` 格式的优势**：`hb_mapper` 在编译时完成 **INT8 量化**，量化后的 `.bin` 由板端 **BPU** 直接加载推理，相比 CPU/GPU 浮点推理，**速度更快、功耗与内存占用更低**；
+
 ---
 
 ## 目录
@@ -53,23 +55,24 @@ Elcetronics competition/
                           │   best.pt   │  训练最优权重（唯一源头）
                           └──────┬──────┘
                     ┌────────────┴────────────┐
-        链路① 本地   │                         │  链路② 板端部署
-        (Windows)   ▼                         ▼   (Windows→Ubuntu)
-        export.py              export_rdk_onnx.py (rdk_x5/)
-             │                         │
-             ▼                         ▼
-        best.onnx             rdk_yolov5s_320.onnx
-        FP32 26.9MB           FP32 26.8MB（无NMS/NHWC/batch1/opset11）
-        (含NMS，可独立推理)         │
-             │                    ├─ prepare_calib_data.py → 50张校准数据
-             ▼                    │
-   quantize_int8.py              ▼
-   (ONNX Runtime QDQ)     hb_mapper makertbin (Ubuntu+Docker)
-             │              ── 内部完成 INT8 量化 ──
-             ▼                    │
-        best_int8.onnx            ▼
-        INT8 7.1MB         yolov5s_320_....bin (INT8)
-        本地PC/边缘验证      ★ RDK X5 板端 hobot_dnn 加载
+                 |                                  |
+                 ▼                                  ▼ 
+            链路① 本地(Windows)            链路② 板端部署 (Windows→Ubuntu)    
+            export.py                       export_rdk_onnx.py (rdk_x5/)
+                │                                   │
+                ▼                                   ▼
+            best.onnx                        rdk_yolov5s_320.onnx
+            FP32 26.9MB                 FP32 26.8MB（无NMS/NHWC/batch1/opset11）
+            (含NMS，可独立推理)                      |
+                │                                   ├─ prepare_calib_data.py → 50张校准数据
+                ▼                                   │
+        quantize_int8.py                            ▼
+        (ONNX Runtime QDQ)              hb_mapper makertbin (Ubuntu+Docker)
+                │                        ── 内部完成 INT8 量化 ──
+                ▼                                   │
+            best_int8.onnx                          ▼
+            INT8 7.1MB                  yolov5s_320_....bin (INT8)
+            本地PC/边缘验证             ★ RDK X5 板端 hobot_dnn 加载
 ```
 
 | | 链路① INT8 量化（本地） | 链路② ONNX → .bin（板端部署） |
