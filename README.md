@@ -1,6 +1,6 @@
-# 2026 电子设计竞赛 —— 钢材目标检测 (YOLOv5s)
+# 2026 电子设计竞赛 —— 钢珠目标检测 (YOLOv5s)
 
-基于 **YOLOv5s** 的钢材表面目标检测项目，检测三类目标：**铁片 (`ir_sheet`)**、**铁盘 (`ir_disc`)**、**钢珠 (`st_ball`)**。
+基于 **YOLOv5s** 的钢珠目标检测项目，检测三类目标：**铁片 (`ir_sheet`)**、**铁盘 (`ir_disc`)**、**钢珠 (`st_ball`)**。
 训练→验证→ONNX 导出→INT8 量化全流程闭环，目标部署平台为 **地平线 RDK X5** 边缘计算板。
 
 ---
@@ -47,8 +47,7 @@ Elcetronics competition/
 │   │   ├── *.txt                   # 原始标注 (678 个，与原始图片同名)
 │   │   ├── classes.txt             # 类别清单 (ir_sheet / ir_disc / st_ball)
 │   │   ├── train.cache             # 训练标签缓存（可自动重建）
-│   │   ├── val.cache               # 验证标签缓存（可自动重建）
-│   │   └── split.py                # ⚠️ 遗留的旧划分脚本（路径已失效，勿用）
+│   │   └── val.cache               # 验证标签缓存（可自动重建）
 │   ├── dataset.yaml                # YOLOv5 数据集配置（路径/类别数/类别名）
 │   └── train_yolov5s.py            # 一键脚本：划分数据集 + 启动训练
 │
@@ -75,8 +74,6 @@ Elcetronics competition/
 │   └── requirements.txt            # Python 依赖清单
 │
 ├── quantize_int8.py                # ONNX Runtime 静态 INT8 量化脚本
-├── select_calib.py                 # ⚠️ 遗留：校准图选取脚本（已被量化脚本内置逻辑取代）
-├── picture/                        # ⚠️ 遗留：旧校准图副本（200 张，不入库）
 ├── rdk_x5/                         # RDK X5 部署转换工具链 (.onnx → .bin)
 │   ├── export_rdk_onnx.py          # 按地平线规范导出 ONNX（NHWC 3 特征头）
 │   ├── prepare_calib_data.py       # 生成 hb_mapper 校准数据（50 张 f32 RGB）
@@ -140,9 +137,6 @@ Elcetronics competition/
 | `rdk_x5/convert_to_bin.sh` | Docker 容器内执行 checker + makertbin，产出 .bin | ✅ 必需（RDK 部署） |
 | `rdk_x5/ubuntu_deploy_tutorial.md` | Ubuntu 环境部署教程（Docker 安装/镜像加速/FAQ） | ✅ 必需（RDK 部署） |
 | `yolov5/yolov5s.pt` | COCO 预训练权重 | ✅ 必需（训练起点） |
-| `iron_steel_dataset_v2/labels/split.py` | 旧划分脚本（路径写死已失效） | ❌ 遗留，可删 |
-| `select_calib.py` | 旧校准图选取脚本 | ❌ 遗留，可删 |
-| `picture/` | 旧校准图副本 | ❌ 遗留，不入库 |
 
 ---
 
