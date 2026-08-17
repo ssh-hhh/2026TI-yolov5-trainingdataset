@@ -17,7 +17,7 @@ from pathlib import Path
 
 import torch
 
-ROOT: Path = Path(r"D:\Edge\Elcetronics competition")
+ROOT: Path = Path(__file__).resolve().parent.parent  # 仓库根（脚本位于 rdk_x5/，clone 后无需改路径）
 YOLOV5_DIR: Path = ROOT / "yolov5"
 WEIGHTS: Path = YOLOV5_DIR / "runs/train/steel_ball_v1/weights/best.pt"
 OUTPUT: Path = YOLOV5_DIR / "runs/train/steel_ball_v1/weights/rdk_yolov5s_320.onnx"

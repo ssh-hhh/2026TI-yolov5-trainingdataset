@@ -17,7 +17,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 
-ROOT: Path = Path(r"D:\Edge\Elcetronics competition")
+ROOT: Path = Path(__file__).resolve().parent.parent  # 仓库根（脚本位于 rdk_x5/，clone 后无需改路径）
 SRC_DIR: Path = ROOT / "iron_steel_dataset_v2/images/train"
 OUT_DIR: Path = ROOT / "rdk_x5/calibration_data_rgb_f32_320"
 INPUT_SIZE: int = 320

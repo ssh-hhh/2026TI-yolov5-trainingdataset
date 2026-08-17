@@ -21,7 +21,7 @@ from onnxruntime.quantization import (
     quantize_static,
 )
 
-ROOT: Final = Path(r"D:\Edge\Elcetronics competition")
+ROOT: Final = Path(__file__).resolve().parent  # 仓库根（脚本位于仓库根，clone 后无需改路径）
 MODEL_PATH: Final = ROOT / "yolov5/runs/train/steel_ball_v1/weights/best.onnx"
 OUTPUT_PATH: Final = ROOT / "yolov5/runs/train/steel_ball_v1/weights/best_int8.onnx"
 CALIBRATION_DIR: Final = ROOT / "iron_steel_dataset_v2/images/train"

@@ -8,8 +8,8 @@ import shutil
 import random
 from pathlib import Path
 
-BASE    = Path(r"D:\Edge\Elcetronics competition\iron_steel_dataset_v2")
-YOLOV5  = Path(r"D:\Edge\Elcetronics competition\yolov5")
+BASE    = Path(__file__).resolve().parent       # 数据集目录（脚本位于 iron_steel_dataset_v2/）
+YOLOV5  = BASE.parent / "yolov5"                # 仓库根下相邻的 yolov5 框架（clone 后无需改路径）
 IMAGES  = BASE / "images"
 LABELS  = BASE / "labels"
 SPLIT   = 0.8

@@ -1,4 +1,4 @@
-# 2026 电子设计竞赛 —— 钢珠目标检测 (YOLOv5s)
+# Yolov5系列模型部署到RDX X5 —— 基于钢珠目标检测 (YOLOv5s)
 
 基于 **YOLOv5s** 的钢珠目标检测项目，检测三类目标：**铁片 (`ir_sheet`)**、**铁盘 (`ir_disc`)**、**钢珠 (`st_ball`)**。
 训练→验证→ONNX 导出→INT8 量化全流程闭环，目标部署平台为 **地平线 RDK X5** 边缘计算板。
@@ -10,7 +10,6 @@
 - [特性](#特性)
 - [目录结构](#目录结构)
 - [处理流程](#处理流程)
-- [文件说明](#文件说明)
 - [运行环境配置](#运行环境配置)
 - [快速开始](#快速开始)
 - [训练结果](#训练结果)
@@ -28,7 +27,6 @@
 - ✅ 数据集自动划分 train/val（80% / 20%），一键脚本
 - ✅ 训练配置可复现：`yolov5s` + 320px + 300 epochs，mAP@0.5 达 **0.990**
 - ✅ ONNX 导出 + 静态 INT8 量化（QDQ），模型体积 26.9MB → **7.1MB**
-- ✅ FP32 / INT8 双版本在验证集上的精度、延迟对比
 - 🎯 面向 RDK X5 部署（.bin 转换，见[部署](#部署到-rdk-x5)）
 
 ---
@@ -90,24 +88,7 @@ Elcetronics competition/
 
 ## 处理流程
 
-```
-┌─────────────┐    ┌──────────────┐    ┌──────────────┐    ┌──────────────┐
-│ 数据准备     │ →  │ 训练          │ →  │ 导出          │ →  │ 量化          │
-│ train_yolo  │    │ yolov5/train │    │ yolov5/export│    │ quantize_    │
-│ v5s.py      │    │ .py          │    │ .py          │    │ int8.py      │
-└─────────────┘    └──────────────┘    └──────────────┘    └──────────────┘
-  678张图+标注         yolov5s@320px       best.pt            best.onnx
-  80/20 划分          300 epochs          → best.onnx        → best_int8.onnx
-  → train/val         → best.pt          (26.9MB)            (7.1MB)
-                                                    │
-                                                    ▼
-                                     ┌──────────────────────────┐
-                                     │ RDK X5 部署转换           │
-                                     │ rdk_x5/ (onnx → .bin)    │
-                                     └──────────────────────────┘
-```
-
-**详细步骤：**
+从数据到可部署模型共 5 步（产物流转见[模型产物与流转](#模型产物与流转)）：
 
 1. **数据划分**：`train_yolov5s.py` 将 678 张图片按 80/20 随机划分（seed=42），
    复制到 `images/train`、`images/val`（标注同步），并生成 `dataset.yaml`。
@@ -118,26 +99,6 @@ Elcetronics competition/
    使用 ONNX Runtime 静态量化（QDQ、INT8、MinMax、per-channel、仅量化 Conv），
    产出 `best_int8.onnx`，并输出 FP32/INT8 的延迟与输出差异对比。
 5. **验证对比**：`val.py` 分别对 FP32 / INT8 ONNX 在验证集评估，结果存 `runs/val/`。
-
----
-
-## 文件说明
-
-| 文件 | 作用 | 是否必要 |
-|---|---|---|
-| `iron_steel_dataset_v2/train_yolov5s.py` | 划分数据集 + 启动训练的一键入口 | ✅ 必需 |
-| `iron_steel_dataset_v2/dataset.yaml` | 告诉 YOLOv5 数据在哪、有几类 | ✅ 必需 |
-| `yolov5/train.py` | 训练主程序 | ✅ 必需 |
-| `yolov5/export.py` | .pt → ONNX 导出 | ✅ 必需 |
-| `yolov5/val.py` | 验证集评估（mAP/PR） | ✅ 必需 |
-| `yolov5/detect.py` | 图片/视频/摄像头推理 | ✅ 必需 |
-| `quantize_int8.py` | ONNX INT8 静态量化 + 性能对比 | ✅ 必需（部署） |
-| `rdk_x5/export_rdk_onnx.py` | 按地平线规范导出 ONNX（剥离 NMS、NHWC 3 头、batch=1、opset=11） | ✅ 必需（RDK 部署） |
-| `rdk_x5/prepare_calib_data.py` | 从训练集生成 hb_mapper 校准数据（50 张 float32 RGB NCHW 0~255） | ✅ 必需（RDK 部署） |
-| `rdk_x5/yolov5s_320_bayese_nv12.yaml` | hb_mapper 量化编译配置（march= bayes-e、nv12 输入、data_scale 1/255） | ✅ 必需（RDK 部署） |
-| `rdk_x5/convert_to_bin.sh` | Docker 容器内执行 checker + makertbin，产出 .bin | ✅ 必需（RDK 部署） |
-| `rdk_x5/ubuntu_deploy_tutorial.md` | Ubuntu 环境部署教程（Docker 安装/镜像加速/FAQ） | ✅ 必需（RDK 部署） |
-| `yolov5/yolov5s.pt` | COCO 预训练权重 | ✅ 必需（训练起点） |
 
 ---
 
@@ -178,6 +139,9 @@ pip install onnx onnxruntime onnx-simplifier opencv-python
 
 ## 快速开始
 
+> ✅ **免配置路径**：所有脚本均基于 `__file__` 自动定位仓库根目录，
+> clone 后无需修改任何路径即可运行（`train_yolov5s.py`、`quantize_int8.py`、`rdk_x5/` 通用）。
+
 ### 1. 训练
 
 ```bash
@@ -185,10 +149,10 @@ pip install onnx onnxruntime onnx-simplifier opencv-python
 cd iron_steel_dataset_v2
 python train_yolov5s.py
 
-# 方式二：手动（数据已划分好）
+# 方式二：手动（数据已划分好，在 yolov5 目录下用相对路径）
 cd yolov5
 python train.py --weights yolov5s.pt ^
-    --data "D:\Edge\Elcetronics competition\iron_steel_dataset_v2\dataset.yaml" ^
+    --data ../iron_steel_dataset_v2/dataset.yaml ^
     --epochs 300 --batch-size 16 --imgsz 320 --patience 0 ^
     --name steel_ball_v1 --cache ram --workers 0
 ```
@@ -212,11 +176,11 @@ python quantize_int8.py
 
 ```bash
 # FP32
-python val.py --data "D:\Edge\Elcetronics competition\iron_steel_dataset_v2\dataset.yaml" ^
+python val.py --data ../iron_steel_dataset_v2/dataset.yaml ^
     --weights runs/train/steel_ball_v1/weights/best.onnx --imgsz 320 --name fp32_onnx
 
 # INT8
-python val.py --data "D:\Edge\Elcetronics competition\iron_steel_dataset_v2\dataset.yaml" ^
+python val.py --data ../iron_steel_dataset_v2/dataset.yaml ^
     --weights runs/train/steel_ball_v1/weights/best_int8.onnx --imgsz 320 --name int8_onnx
 ```
 
@@ -312,11 +276,8 @@ python detect.py --weights runs/train/steel_ball_v1/weights/best.pt --source <�
 
 ## 部署到 RDK X5
 
-本项目最终目标是在 **地平线 RDK X5**（旭日 X5，BPU）上运行。部署链路：
-
-```
-best.pt ──(export_rdk_onnx.py)──> rdk_yolov5s_320.onnx ──(hb_mapper / OpenExplorer 工具链)──> .bin ──> RDK X5 板端 (hobot-dnn)
-```
+本项目最终目标是在 **地平线 RDK X5**（旭日 X5，BPU）上运行。
+部署链路与完整流转图见[模型产物与流转](#模型产物与流转)（路线 B）。
 
 工具链：**OpenExplorer v1.2.8**（Docker 镜像 `openexplorer/ai_toolchain_ubuntu_20_x5_cpu:v1.2.8`），`march= bayes-e`。
 
