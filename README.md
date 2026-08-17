@@ -82,7 +82,8 @@ Elcetronics competition/
 │   ├── prepare_calib_data.py       # 生成 hb_mapper 校准数据（50 张 f32 RGB）
 │   ├── calibration_data_rgb_f32_320/  # ⚠️ 生成的校准数据（不入库）
 │   ├── yolov5s_320_bayese_nv12.yaml   # hb_mapper 量化编译配置
-│   └── convert_to_bin.sh           # Docker 一键转换脚本（checker + makertbin）
+│   ├── convert_to_bin.sh           # Docker 一键转换脚本（checker + makertbin）
+│   └── ubuntu_deploy_tutorial.md   # 📖 Ubuntu 环境部署教程（含 Docker 安装/镜像加速/FAQ）
 ├── .gitignore
 └── README.md
 ```
@@ -137,6 +138,7 @@ Elcetronics competition/
 | `rdk_x5/prepare_calib_data.py` | 从训练集生成 hb_mapper 校准数据（50 张 float32 RGB NCHW 0~255） | ✅ 必需（RDK 部署） |
 | `rdk_x5/yolov5s_320_bayese_nv12.yaml` | hb_mapper 量化编译配置（march= bayes-e、nv12 输入、data_scale 1/255） | ✅ 必需（RDK 部署） |
 | `rdk_x5/convert_to_bin.sh` | Docker 容器内执行 checker + makertbin，产出 .bin | ✅ 必需（RDK 部署） |
+| `rdk_x5/ubuntu_deploy_tutorial.md` | Ubuntu 环境部署教程（Docker 安装/镜像加速/FAQ） | ✅ 必需（RDK 部署） |
 | `yolov5/yolov5s.pt` | COCO 预训练权重 | ✅ 必需（训练起点） |
 | `iron_steel_dataset_v2/labels/split.py` | 旧划分脚本（路径写死已失效） | ❌ 遗留，可删 |
 | `select_calib.py` | 旧校准图选取脚本 | ❌ 遗留，可删 |
@@ -266,6 +268,9 @@ best.pt ──(export_rdk_onnx.py)──> rdk_yolov5s_320.onnx ──(hb_mapper 
 
 ### 转换步骤（`rdk_x5/` 一键工具链）
 
+> Windows 端负责训练/导出/校准（conda yolov5 环境）；转换在 **Ubuntu** 完成。
+> 完整环境搭建（Docker 安装、镜像加速、FAQ）见 **[`rdk_x5/ubuntu_deploy_tutorial.md`](rdk_x5/ubuntu_deploy_tutorial.md)**。
+
 ```bash
 # ① 在 Windows（conda yolov5 环境）导出符合地平线规范的 ONNX
 #    - 剥离 NMS 后处理，Detect 头输出 3 个 NHWC 特征图（P3/P4/P5）
@@ -279,7 +284,7 @@ python rdk_x5/export_rdk_onnx.py
 python rdk_x5/prepare_calib_data.py
 # 产物: rdk_x5/calibration_data_rgb_f32_320/*.bin
 
-# ③ 在 WSL2/Linux（需 Docker）转换 ONNX → .bin
+# ③ 将上述产物拷贝到 Ubuntu（U盘/scp），按教程装好 Docker 后转换 ONNX → .bin
 bash rdk_x5/convert_to_bin.sh
 # 产物: rdk_x5/output/yolov5s_320_bayese_nv12/*.bin
 ```
